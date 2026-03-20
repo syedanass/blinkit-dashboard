@@ -8,7 +8,12 @@ st.set_page_config(page_title="Blinkit Analytics Dashboard", page_icon="🛒", l
 
 @st.cache_resource
 def get_connection():
-    sf = st.secrets["snowflake"]
+    if "snowflake" in st.secrets:
+        sf = st.secrets["snowflake"]
+    elif "connections" in st.secrets and "snowflake" in st.secrets["connections"]:
+        sf = st.secrets["connections"]["snowflake"]
+    else:
+        sf = st.secrets
     p_key = serialization.load_pem_private_key(sf["private_key"].encode(), password=None)
     pkb = p_key.private_bytes(
         encoding=serialization.Encoding.DER,
