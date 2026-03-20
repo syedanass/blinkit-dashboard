@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import snowflake.connector
-from cryptography.hazmat.primitives import serialization
+import base64
 
 st.set_page_config(page_title="Blinkit Analytics Dashboard", page_icon="🛒", layout="wide")
 
@@ -14,12 +14,7 @@ def get_connection():
         sf = st.secrets["connections"]["snowflake"]
     else:
         sf = st.secrets
-    p_key = serialization.load_pem_private_key(sf["private_key"].encode(), password=None)
-    pkb = p_key.private_bytes(
-        encoding=serialization.Encoding.DER,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
+    pkb = base64.b64decode(sf["private_key_b64"])
     return snowflake.connector.connect(
         account=sf["account"],
         user=sf["user"],
