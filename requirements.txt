@@ -1,5 +1,6 @@
 streamlit
 snowflake-connector-python
 snowflake-snowpark-python
+cryptography
 pandas
 altair

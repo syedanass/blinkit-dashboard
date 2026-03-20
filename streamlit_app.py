@@ -1,26 +1,52 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import snowflake.connector
+from cryptography.hazmat.primitives import serialization
 
 st.set_page_config(page_title="Blinkit Analytics Dashboard", page_icon="🛒", layout="wide")
 
-conn = st.connection("snowflake")
+@st.cache_resource
+def get_connection():
+    sf = st.secrets["snowflake"]
+    p_key = serialization.load_pem_private_key(sf["private_key"].encode(), password=None)
+    pkb = p_key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return snowflake.connector.connect(
+        account=sf["account"],
+        user=sf["user"],
+        private_key=pkb,
+        warehouse=sf["warehouse"],
+        role=sf["role"],
+    )
+
+conn = get_connection()
+
+def run_query(sql):
+    cur = conn.cursor()
+    cur.execute(sql)
+    df = cur.fetch_pandas_all()
+    cur.close()
+    return df
 
 @st.cache_data(ttl=600)
 def load_orders():
-    return conn.query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_ORDERS")
+    return run_query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_ORDERS")
 
 @st.cache_data(ttl=600)
 def load_order_items():
-    return conn.query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_ORDER_ITEMS")
+    return run_query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_ORDER_ITEMS")
 
 @st.cache_data(ttl=600)
 def load_delivery():
-    return conn.query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_DELIVERY_PERFORMANCE")
+    return run_query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_DELIVERY_PERFORMANCE")
 
 @st.cache_data(ttl=600)
 def load_marketing():
-    return conn.query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_MARKETING_PERFORMANCE")
+    return run_query("SELECT * FROM BLINKIT_DW.RAW.BLINKIT_MARKETING_PERFORMANCE")
 
 orders = load_orders()
 order_items = load_order_items()
